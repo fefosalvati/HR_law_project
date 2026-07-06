@@ -1,0 +1,53 @@
+######Discussion research cdesign 
+
+
+
+Problem: Is the authoritative character of the comments determined by textual elements within the comments themselves?
+
+
+Strategy: Investigate network positions (e.g., inbetweenness) of documents and their correlations with textual-level covariates. 
+
+
+Hypothesis 1: Non-technical references to or non-technical citations cause higher degrees of centrality. 
+            Sub 1: A high degree of relevant HR language causes the comments to be more successful? 
+            Sub 2: A high degree of frame connectivity causes comments to be more successful.
+
+Hypothesis 2: The presence of certain topics and certain frames causes some comments to be picked up more frequently than others (e.g., children's rights might cause more citations)
+
+Addendum (not really an independent hypothesis, maybe a control for H1 and H2): Certain comments with certain references are cited more by certain specific actors, e. g., the Global South cites more development-connected rights 
+
+###############################################################
+##### WHAT WE NEED
+###############################################################
+
+Priority: finalizing datasets
+  1) Text dataset having
+      a) individual ID for Texts
+      b) Text data about single comments
+
+  2) Connectivity dataset having (I am not sure what kind of data we have for the network; I tried to put down everything that came to mind, but feel free to correct me)
+      a) in-betweenness values 
+      b) outgoing degree values 
+      c) incoming degree values
+      d) Centrality
+      d) Titles of referenced/referencies documents (maybe)
+
+I will eventually fuse the datasets when necessary, but I think it might be better to keep it separate for now just for the sake of simplicity
+
+
+###############################################################
+##### Methodological tools
+###############################################################
+
+1) Extraction tasks: Extracting certain specific non-technical linguistic units in order to investigate their quality and quantity
+        a) NER (Named Entity Recognition with Transformers)
+        b) Structured extraction (LLM Ontology Based)
+2) Unsupervised 
+    a) Topic Modelling
+    b) Unsupervised clustering distances(which is basicallly already in the topic modelling)
+
+
+PRIORITY: We need to find examples where the linguistic units that cause the comment to have multiframing and normative complexity actually exist within the text and can be identified
+In Brief:  We need to find examples that the linguistic unit we are looking for actually exists within the text. 
+
+As we discussed, eventually it might be useful to have also the text the comments have an effect on
