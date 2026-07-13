@@ -1,0 +1,230 @@
+---
+title: "Text Analysis GenCom: Generating Code and Analysis"
+output: html_document
+date: "2026-07-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This is a note pad for the data preparation and initial analysis of the General Comments Paper (Network and Diskurs Analysis).
+
+# Transform Documents
+The first step is to transform and merge the data. I exported the text data from two MAXQDA files that contain the network coding and all the available texts. MAXQDA only allows exports in Excel, which -- however -- only allows up to ca. 32.000 characters per line. Although the MAXQDA export orinigally stores the text in several lines, the text analysis requires text in one line to generate a comprehensive data set. 
+Thus, the transformation needs to transform the text first into CSV and than generate the data set.
+
+
+
+## Prepare
+
+```         
+install.packages("readxl")
+
+setwd("D:/Research/Web of Human Rights/GenComs/text")
+
+```
+
+## Transforming Excel into CSV
+Excel files are stored in one separet folder. CSV files go into a new folder for all texts.
+
+```
+library(readxl)
+
+# Files with raw data and output
+input_dir  <- "all_xlsx"
+output_dir <- "all"
+
+# List all xlsx-Dat in input-file
+files <- list.files(input_dir, pattern = "\\.xlsx$", full.names = TRUE)
+
+# Loop: read files and save as new CSV in new folder
+for (f in files) {
+  df <- read_excel(f)
+  
+  out_name <- paste0(tools::file_path_sans_ext(basename(f)), ".csv")
+  out_path <- file.path(output_dir, out_name)
+  
+  write.csv(df, out_path, row.names = FALSE, fileEncoding = "UTF-8")
+}
+
+```
+
+## Batching over all docs
+This needs to run over all GenCom Docs now in CSV format.
+
+```         
+library(dplyr)
+
+files <- list.files("all", pattern = "\\.csv$", full.names = TRUE)
+docs_list <- lapply(files, read.csv, stringsAsFactors = FALSE, encoding = "UTF-8")
+names(docs_list) <- tools::file_path_sans_ext(basename(files))
+
+collapse_doc <- function(df, text_col = 2) {
+  paste(df[[text_col]], collapse = "\n\n")
+}
+
+collapsed_all <- sapply(docs_list, collapse_doc)
+
+
+dataset <- data.frame(
+  doc_id = names(collapsed_all),
+  text   = collapsed_all,
+  stringsAsFactors = FALSE
+)
+```
+
+## Exporting Data set
+
+```         
+#write text
+writeLines(dataset$text, "datatext_all.txt")
+
+#export
+write.csv2(dataset, "dataset_all.csv", row.names = FALSE)
+
+
+
+
+```
+## Emerging Problems
+
+Biggist issue / bug: Starting with UN1997GenRecCEDAW23 in row 366 or line 386 in the original file, the text "leaves" the row in the data set and starts a new row in the aggregate data set here: "10 See paragraph 141 // of the Plaform of action..". This happens several time in the data set generating process, and I am not sure what to do about it. Initially, I though the text reaches Excel's character limit in one row (ca. 32.000), but it also happens in CSV. Since the break-up is arbitraty, there must be something in the treatment of the text. The text itself does not seem to have a break.
+
+
+
+## To Do
+ (Keep titles) (?)
+ 
+ 
+### Analysis
+
+clustering
+sementic distribution
+readability
+supervised classification
+
+
+- how is the discursive authority organized, is there a textual dimension to explain the network position
+
+RQ: Does the text explain the network position? 
+
+
+- specific framing of a new HR interpretation: VaW Gen Com on shifting human rights interpretation, --> look for examples that represent the textual/discursive linkages that you expect
+non-technical references --> classification or extraction , name entry recognition task
+- What are text level co-variance that make the text (in terms of theory network) central?
+
+- What about GenComs jointly produced by Committees?
+
++ contructing the Data set
+++ Overview Data
+- doc_id, text, indegree, outdegree, betweenness, 
+- 
+++ Dyadic Network Data
+- basic doc_id dyadic data
+
+- Identify examples to grasp what these textual representation might actualyl look like.
+
++ Analysis: supervised extraction, undersupervised extraction
+
+
+
+
+
+
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```         
+```
+
+# Appendix
+This includes old ideas and residual code.
+
+## First idea Read texts
+
+```         
+# Read data
+UN2017GenComCAT4 <- read_excel("UN2017GenComCAT4.xlsx")
+
+# Collapse into a single string, paragraphs separated by double newline
+doc_text <- paste(UN2017GenComCAT4[[2]], collapse = "\n\n")
+
+# If you want it as a one-row tibble preserving the structure:
+UN2017GenComCAT4_collapsed <- tibble(
+  doc_id = 1,
+  committee = "Committee against Torture",
+  text = paste(UN2017GenComCAT4 [[2]], collapse = "\n\n")
+)
+
+#if you need to batch this across documents than I would do soemthing like
+this
+collapse_doc <- function(df, text_col = 2) {
+  paste(df[[text_col]], collapse = "\n\n")
+}
+```
+## Old bathcing code
+```
+library(readxl)
+library(dplyr)
+
+files <- list.files("all", pattern = "\\.xlsx$", full.names = TRUE)
+docs_list <- lapply(files, read_excel)
+names(docs_list) <- tools::file_path_sans_ext(basename(files))
+
+collapse_doc <- function(df, text_col = 2) {
+  paste(df[[text_col]], collapse = "\n\n")
+}
+
+collapsed_all <- sapply(docs_list, collapse_doc)
+
+
+dataset <- data.frame(
+  doc_id = names(collapsed_all),
+  text   = collapsed_all,
+  stringsAsFactors = FALSE
+)
+
+#Check
+lengths <- sapply(docs_list, function(df) nchar(df[[2]]))
+lengths  # oder: 
+which(lengths > 32000)
+
+
+```
+
+
+\*\*Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+
+library(openxlsx)
+setwd("D:/Research/Web of Human Rights/GenComs/wd")
+
+# CSV einlesen
+df <- read.csv("data_gc.csv", stringsAsFactors = FALSE)
+
+# Neues Workbook erstellen
+wb <- createWorkbook()
+addWorksheet(wb, "Daten")
+
+# Daten schreiben
+writeData(wb, "Daten", df)
+
+# Spaltenbreite automatisch anpassen
+setColWidths(wb, "Daten", cols = 1:ncol(df), widths = "auto")
+
+# Kopfzeile formatieren (fett, Hintergrundfarbe)
+headerStyle <- createStyle(textDecoration = "bold", fgFill = "#D9E1F2", 
+                            halign = "center", border = "Bottom")
+addStyle(wb, "Daten", headerStyle, rows = 1, cols = 1:ncol(df))
+
+# Filter auf Kopfzeile aktivieren
+freezePane(wb, "Daten", firstRow = TRUE)
+
+# Speichern
+saveWorkbook(wb, "dataset_formatiert.xlsx", overwrite = TRUE)
+
