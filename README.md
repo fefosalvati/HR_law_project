@@ -6,4 +6,6 @@
 
 * dataset_text.csv: includes the Document id and the text of all UN General Comments and Recommendations in the dataset
 
+* datatext.csv: includes all texts of each document, but without any additional data
+
 * dataset_gc.csv: includes the complete cross-section data set: Document id, vars on year, word count, info on organization, codes outgoing references, etc.
