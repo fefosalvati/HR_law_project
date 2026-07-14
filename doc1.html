@@ -371,31 +371,40 @@ than generate the data set.</p>
 <div id="prepare" class="section level2">
 <h2>Prepare</h2>
 <pre><code>install.packages(&quot;readxl&quot;)
+install.packages(&quot;ggplot2&quot;)
 
 setwd(&quot;D:/Research/Web of Human Rights/GenComs/text&quot;)
 </code></pre>
 </div>
 <div id="transforming-excel-into-csv" class="section level2">
 <h2>Transforming Excel into CSV</h2>
-<p>Excel files are stored in one separet folder. CSV files go into a new
-folder for all texts.</p>
+<p>Excel files are stored in one separate folder. CSV files go into a
+new folder for all texts.</p>
 <pre><code>library(readxl)
 
-# Files with raw data and output
 input_dir  &lt;- &quot;all_xlsx&quot;
 output_dir &lt;- &quot;all&quot;
 
-# List all xlsx-Dat in input-file
 files &lt;- list.files(input_dir, pattern = &quot;\\.xlsx$&quot;, full.names = TRUE)
 
-# Loop: read files and save as new CSV in new folder
 for (f in files) {
-  df &lt;- read_excel(f)
+  df &lt;- tryCatch({
+    read_excel(f, col_names = FALSE)
+  }, error = function(e) {
+    message(&quot;FEHLER beim Einlesen von &quot;, basename(f), &quot;: &quot;, e$message)
+    NULL
+  })
+  
+  if (is.null(df)) next  # Datei überspringen, aber Loop läuft weiter
   
   out_name &lt;- paste0(tools::file_path_sans_ext(basename(f)), &quot;.csv&quot;)
   out_path &lt;- file.path(output_dir, out_name)
   
-  write.csv(df, out_path, row.names = FALSE, fileEncoding = &quot;UTF-8&quot;)
+  tryCatch({
+    write.csv(df, out_path, row.names = FALSE, fileEncoding = &quot;UTF-8&quot;)
+  }, error = function(e) {
+    message(&quot;FEHLER beim Schreiben von &quot;, basename(f), &quot;: &quot;, e$message)
+  })
 }
 </code></pre>
 </div>
@@ -415,41 +424,99 @@ collapse_doc &lt;- function(df, text_col = 2) {
 collapsed_all &lt;- sapply(docs_list, collapse_doc)
 
 
-dataset &lt;- data.frame(
+dataset_text &lt;- data.frame(
   doc_id = names(collapsed_all),
   text   = collapsed_all,
   stringsAsFactors = FALSE
 )</code></pre>
 </div>
-<div id="exporting-data-set" class="section level2">
-<h2>Exporting Data set</h2>
-<pre><code>#write text
-writeLines(dataset$text, &quot;datatext_all.txt&quot;)
+<div id="exporting-data-set-just-with-text" class="section level2">
+<h2>Exporting Data set just with text</h2>
+<pre><code>#write text in external file
+writeLines(dataset$text, &quot;datatext.txt&quot;)
 
-#export
-write.csv2(dataset, &quot;dataset_all.csv&quot;, row.names = FALSE)
+#export dataset
+write.csv2(dataset, &quot;dataset_text.csv&quot;, row.names = FALSE)
+</code></pre>
+</div>
+<div id="merge-with-network-data" class="section level2">
+<h2>Merge with network data</h2>
+<pre><code>setwd(&quot;D:/Research/Web of Human Rights/GenComs/wd&quot;)
+library(dplyr)
+
+# Data set 2 with info
+data_gc &lt;- read.csv(&quot;data_gc.csv&quot;, stringsAsFactors = FALSE)
+
+## Check
+# Values in doc_id without match in data_gc$id 
+only_in_text &lt;- setdiff(dataset_text$doc_id, data_gc$id)
+only_in_text
+length(only_in_text)
+
+# Values in id without match in dataset_text$doc_id
+only_in_gc &lt;- setdiff(data_gc$id, dataset_text$doc_id)
+only_in_gc
+length(only_in_gc)
+
+# Merge
+dataset_text &lt;- dataset_text %&gt;% rename(id = doc_id)
+
+dataset_gc &lt;- dataset_text %&gt;%
+  inner_join(data_gc, by = &quot;id&quot;)
+
+# Check
+nrow(merged)
+nrow(dataset_text)
+nrow(data_gc)
+</code></pre>
+</div>
+<div id="exporting-data-set-this-version" class="section level2">
+<h2>Exporting Data set this version</h2>
+<pre><code>#export dataset
+write.csv2(dataset_gc, &quot;dataset_gc.csv&quot;, row.names = FALSE)
 
 
+View(dataset_gc)                    # View in RStudio
+str(dataset_gc$text[87])             # Single text
+writeLines(dataset_gc$text[87])      # Read doc
+</code></pre>
+</div>
+<div id="further-code" class="section level2">
+<h2>Further code</h2>
+<pre><code>
 
 </code></pre>
 </div>
 <div id="emerging-problems" class="section level2">
 <h2>Emerging Problems</h2>
-<p>Biggist issue / bug: Starting with UN1997GenRecCEDAW23 in row 366 or
-line 386 in the original file, the text “leaves” the row in the data set
-and starts a new row in the aggregate data set here: “10 See paragraph
-141 // of the Plaform of action..”. This happens several time in the
-data set generating process, and I am not sure what to do about it.
-Initially, I though the text reaches Excel’s character limit in one row
-(ca. 32.000), but it also happens in CSV. Since the break-up is
-arbitraty, there must be something in the treatment of the text. The
-text itself does not seem to have a break.</p>
 </div>
-<div id="to-do" class="section level2">
-<h2>To Do</h2>
+</div>
+<div id="to-do" class="section level1">
+<h1>To Do</h1>
 <p>(Keep titles) (?)</p>
-<div id="analysis" class="section level3">
-<h3>Analysis</h3>
+</div>
+<div id="analysis" class="section level1">
+<h1>Analysis</h1>
+<div id="set-up" class="section level2">
+<h2>Set-up</h2>
+<pre><code>setwd(&quot;D:/Research/Web of Human Rights/GenComs/wd&quot;)
+library(ggplot2)
+</code></pre>
+</div>
+<div id="plotting-trend-in-words" class="section level2">
+<h2>Plotting trend in words</h2>
+<pre><code>dataset_gc |&gt; 
+  ggplot(aes(x = year, y = words)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = &quot;loess&quot;,
+  method.args = list(degree = 2, span = 0.75)
+  ) +
+  labs(
+    x = &quot;Year&quot;,
+    y = &quot;Number Words&quot;,
+    title = &quot;Words in General Comments and Recommendations over Time&quot;
+  ) +
+  theme_minimal()</code></pre>
 <p>clustering sementic distribution readability supervised
 classification</p>
 <ul>
@@ -476,101 +543,13 @@ might actualyl look like.</p></li>
 extraction</p></li>
 </ul>
 </div>
-</div>
 <div id="including-plots" class="section level2">
 <h2>Including Plots</h2>
-<p>You can also embed plots, for example:</p>
 <pre><code></code></pre>
 </div>
 </div>
-<div id="appendix" class="section level1">
-<h1>Appendix</h1>
-<p>This includes old ideas and residual code.</p>
-<div id="first-idea-read-texts" class="section level2">
-<h2>First idea Read texts</h2>
-<pre><code># Read data
-UN2017GenComCAT4 &lt;- read_excel(&quot;UN2017GenComCAT4.xlsx&quot;)
-
-# Collapse into a single string, paragraphs separated by double newline
-doc_text &lt;- paste(UN2017GenComCAT4[[2]], collapse = &quot;\n\n&quot;)
-
-# If you want it as a one-row tibble preserving the structure:
-UN2017GenComCAT4_collapsed &lt;- tibble(
-  doc_id = 1,
-  committee = &quot;Committee against Torture&quot;,
-  text = paste(UN2017GenComCAT4 [[2]], collapse = &quot;\n\n&quot;)
-)
-
-#if you need to batch this across documents than I would do soemthing like
-this
-collapse_doc &lt;- function(df, text_col = 2) {
-  paste(df[[text_col]], collapse = &quot;\n\n&quot;)
-}</code></pre>
-</div>
-<div id="old-bathcing-code" class="section level2">
-<h2>Old bathcing code</h2>
-<pre><code>library(readxl)
-library(dplyr)
-
-files &lt;- list.files(&quot;all&quot;, pattern = &quot;\\.xlsx$&quot;, full.names = TRUE)
-docs_list &lt;- lapply(files, read_excel)
-names(docs_list) &lt;- tools::file_path_sans_ext(basename(files))
-
-collapse_doc &lt;- function(df, text_col = 2) {
-  paste(df[[text_col]], collapse = &quot;\n\n&quot;)
-}
-
-collapsed_all &lt;- sapply(docs_list, collapse_doc)
-
-
-dataset &lt;- data.frame(
-  doc_id = names(collapsed_all),
-  text   = collapsed_all,
-  stringsAsFactors = FALSE
-)
-
-#Check
-lengths &lt;- sapply(docs_list, function(df) nchar(df[[2]]))
-lengths  # oder: 
-which(lengths &gt; 32000)
-
-</code></pre>
-<p>**Note that the <code>echo = FALSE</code> parameter was added to the
-code chunk to prevent printing of the R code that generated the
-plot.</p>
-<p>library(openxlsx) setwd(“D:/Research/Web of Human
-Rights/GenComs/wd”)</p>
-</div>
-</div>
-<div id="csv-einlesen" class="section level1">
-<h1>CSV einlesen</h1>
-<p>df &lt;- read.csv(“data_gc.csv”, stringsAsFactors = FALSE)</p>
-</div>
-<div id="neues-workbook-erstellen" class="section level1">
-<h1>Neues Workbook erstellen</h1>
-<p>wb &lt;- createWorkbook() addWorksheet(wb, “Daten”)</p>
-</div>
-<div id="daten-schreiben" class="section level1">
-<h1>Daten schreiben</h1>
-<p>writeData(wb, “Daten”, df)</p>
-</div>
-<div id="spaltenbreite-automatisch-anpassen" class="section level1">
-<h1>Spaltenbreite automatisch anpassen</h1>
-<p>setColWidths(wb, “Daten”, cols = 1:ncol(df), widths = “auto”)</p>
-</div>
-<div id="kopfzeile-formatieren-fett-hintergrundfarbe" class="section level1">
-<h1>Kopfzeile formatieren (fett, Hintergrundfarbe)</h1>
-<p>headerStyle &lt;- createStyle(textDecoration = “bold”, fgFill =
-“#D9E1F2”, halign = “center”, border = “Bottom”) addStyle(wb, “Daten”,
-headerStyle, rows = 1, cols = 1:ncol(df))</p>
-</div>
-<div id="filter-auf-kopfzeile-aktivieren" class="section level1">
-<h1>Filter auf Kopfzeile aktivieren</h1>
-<p>freezePane(wb, “Daten”, firstRow = TRUE)</p>
-</div>
-<div id="speichern" class="section level1">
-<h1>Speichern</h1>
-<p>saveWorkbook(wb, “dataset_formatiert.xlsx”, overwrite = TRUE)</p>
+<div id="section" class="section level1">
+<h1></h1>
 </div>
 
 

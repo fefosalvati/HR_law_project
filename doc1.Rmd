@@ -167,16 +167,16 @@ writeLines(dataset_gc$text[87])      # Read doc
 
 ## Set-up
 
-´´´
+```  
 setwd("D:/Research/Web of Human Rights/GenComs/wd")
 library(ggplot2)
 
-´´´
+```
 
 ## Plotting trend in words
 
 
-´´´
+```
 dataset_gc |> 
   ggplot(aes(x = year, y = words)) +
   geom_point(alpha = 0.5) +
@@ -189,8 +189,7 @@ dataset_gc |>
     title = "Words in General Comments and Recommendations over Time"
   ) +
   theme_minimal()
-
-´´´
+```
 
 
 
@@ -232,204 +231,13 @@ non-technical references --> classification or extraction , name entry recogniti
 
 ## Including Plots
 
-You can also embed plots, for example:
 
 ```
 
 ```
 
 # ############################################################################
-# Appendix
-This includes old ideas and residual code.
 
-## First idea Read texts
-
-```         
-# Read data
-UN2017GenComCAT4 <- read_excel("UN2017GenComCAT4.xlsx")
-
-# Collapse into a single string, paragraphs separated by double newline
-doc_text <- paste(UN2017GenComCAT4[[2]], collapse = "\n\n")
-
-# If you want it as a one-row tibble preserving the structure:
-UN2017GenComCAT4_collapsed <- tibble(
-  doc_id = 1,
-  committee = "Committee against Torture",
-  text = paste(UN2017GenComCAT4 [[2]], collapse = "\n\n")
-)
-
-#if you need to batch this across documents than I would do soemthing like
-this
-collapse_doc <- function(df, text_col = 2) {
-  paste(df[[text_col]], collapse = "\n\n")
-}
-```
-## Old bathcing code
-```
-library(readxl)
-library(dplyr)
-
-files <- list.files("all", pattern = "\\.xlsx$", full.names = TRUE)
-docs_list <- lapply(files, read_excel)
-names(docs_list) <- tools::file_path_sans_ext(basename(files))
-
-collapse_doc <- function(df, text_col = 2) {
-  paste(df[[text_col]], collapse = "\n\n")
-}
-
-collapsed_all <- sapply(docs_list, collapse_doc)
-
-
-dataset <- data.frame(
-  doc_id = names(collapsed_all),
-  text   = collapsed_all,
-  stringsAsFactors = FALSE
-)
-
-#Check
-lengths <- sapply(docs_list, function(df) nchar(df[[2]]))
-lengths  # oder: 
-which(lengths > 32000)
-
-
-```
-
-
-\*\*Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
-
-
-library(openxlsx)
-setwd("D:/Research/Web of Human Rights/GenComs/wd")
-
-## CSV einlesen
-df <- read.csv("data_gc.csv", stringsAsFactors = FALSE)
-
-## Neues Workbook erstellen
-wb <- createWorkbook()
-addWorksheet(wb, "Daten")
-
-## Daten schreiben
-writeData(wb, "Daten", df)
-
-## Spaltenbreite automatisch anpassen
-setColWidths(wb, "Daten", cols = 1:ncol(df), widths = "auto")
-
-## Kopfzeile formatieren (fett, Hintergrundfarbe)
-headerStyle <- createStyle(textDecoration = "bold", fgFill = "#D9E1F2", 
-                            halign = "center", border = "Bottom")
-addStyle(wb, "Daten", headerStyle, rows = 1, cols = 1:ncol(df))
-
-## Filter auf Kopfzeile aktivieren
-freezePane(wb, "Daten", firstRow = TRUE)
-
-## Speichern
-saveWorkbook(wb, "dataset_formatiert.xlsx", overwrite = TRUE)
-
-
-### Another attempt to get good text data extracted
-#### test
-library(readxl)
-
-files <- list.files("all_xlsx", pattern = "\\.xlsx$", full.names = TRUE)
-docs_list <- lapply(files, read_excel)
-names(docs_list) <- tools::file_path_sans_ext(basename(files))
-
-## Zeichenlängen aller Zeilen in der Textspalte prüfen
-check_lengths <- lapply(docs_list, function(df) nchar(as.character(df[[2]])))
-
-## Wie viele Zeilen pro Dokument sind exakt 32767 Zeichen lang?
-sapply(check_lengths, function(x) sum(x == 32767, na.rm = TRUE))
-
-## Zur Sicherheit auch mal die Maximalwerte pro Dokument anschauen
-sapply(check_lengths, max, na.rm = TRUE)
-
-
-
-#### run
-
-
-files <- list.files("all_xlsx", pattern = "\\.xlsx$", full.names = TRUE)
-docs_list <- lapply(files, read.csv, stringsAsFactors = FALSE, encoding = "UTF-8")
-names(docs_list) <- tools::file_path_sans_ext(basename(files))
-
-collapse_doc <- function(df, text_col = 2, threshold = 32760) {
-  txt <- as.character(df[[text_col]])
-  txt[is.na(txt)] <- ""
-  
-  result <- character(0)
-  buffer <- ""
-  
-  for (i in seq_along(txt)) {
-    buffer <- paste0(buffer, txt[i])
-    # Wenn die Zeile NICHT am Limit abgebrochen wurde, ist der Textblock fertig
-    if (nchar(txt[i]) < threshold) {
-      result <- c(result, buffer)
-      buffer <- ""
-    }
-    # Sonst: nächste Zeile direkt anhängen (KEIN \n\n, da mitten im Text getrennt)
-  }
-  if (nchar(buffer) > 0) result <- c(result, buffer)
-  
-  paste(result, collapse = "\n\n")
-}
-
-
-
-#### doc suche
-## Beispiel: erstes Dokument, zeig mir die letzten 100 Zeichen jeder Zeile
-df <- docs_list[[80]]
-sapply(df[[2]], function(x) substr(as.character(x), nchar(as.character(x)) - 99, nchar(as.character(x))))
-
-df <- read_excel("all_xlsx/UN1997GenRecCEDAW23.xlsx", col_types = "text")
-
-df_alt <- read_excel("all_xlsx/UN1997GenRecCEDAW23.xlsx")
-sum(is.na(df_alt[[2]]))
-nchar(paste(df_alt[[2]], collapse = ""))
-
-## Nachher (mit col_types = "text")
-df_neu <- read_excel("all_xlsx/UN1997GenRecCEDAW23.xlsx", col_types = "text")
-sum(is.na(df_neu[[2]]))
-nchar(paste(df_neu[[2]], collapse = ""))
-
-
-
-##
-
-df_alt <- read_excel("all_xlsx/UN1997GenRecCEDAW23.xlsx")
-cat("Alt - NAs:", sum(is.na(df_alt[[2]])), "\n")
-cat("Alt - Zeichen gesamt:", nchar(paste(df_alt[[2]], collapse = "")), "\n")
-
-df_neu <- read_excel("all_xlsx/UN1997GenRecCEDAW23.xlsx", col_types = "text")
-cat("Neu - NAs:", sum(is.na(df_neu[[2]])), "\n")
-cat("Neu - Zeichen gesamt:", nchar(paste(df_neu[[2]], collapse = "")), "\n")
-
-
-collapse_doc <- function(df, text_col = 2) {
-  paste(df[[text_col]], collapse = "\n\n")
-}
-
-doc_lengths <- sapply(docs_list, function(df) nchar(collapse_doc(df)))
-doc_lengths
-
-## Wie viele Dokumente liegen über dem Excel-Limit?
-sum(doc_lengths > 32767)
-which(doc_lengths > 32767)
-
-
-
-## Verify
-
-## Datensatz neu einlesen (nicht über Excel, sondern direkt in R)
-check <- read.csv2("dataset_all.csv", stringsAsFactors = FALSE)
-
-## Zeichenlängen vergleichen mit dem Original-dataset
-all.equal(nchar(dataset$text), nchar(check$text))
-
-## Speziell die vorher identifizierten "langen" Dokumente prüfen
-long_docs <- which(doc_lengths > 32767)
-nchar(dataset$text[long_docs])       # Original
-nchar(check$text[long_docs])         # Neu eingelesen aus CSV
 
 
 
