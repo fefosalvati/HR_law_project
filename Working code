@@ -43,7 +43,7 @@ table(map_int(map(files, ~ read_excel(.x, col_names = FALSE)), ncol))
 # Merge with the network data. read_csv() (readr) rather than read.csv():
 # it is RFC4180-compliant and handles quoting properly. data_gc.csv holds
 # only ids and numbers, so it is safe either way — but be consistent.
-data_gc <- readr::read_csv("D:/Research/Web of Human Rights/GenComs/wd/data_gc.csv")
+data_gc <- readr::read_csv("Your_directory/GenComs/wd/data_gc.csv")
 
 # Diagnose id mismatches BEFORE the join, otherwise inner_join silently
 # drops documents and you will not notice.
@@ -57,10 +57,10 @@ nrow(dataset_gc)
 
 # SAVE AS .rds this is the actual fix. No text is ever serialised to a
 # character-delimited format, so no field can split across rows.
-saveRDS(dataset_gc, "D:/Research/Web of Human Rights/GenComs/wd/dataset_gc.rds")
+saveRDS(dataset_gc, "your_directory/GenComs/wd/dataset_gc.rds")
 
 # Reload in any later session with:
-# dataset_gc <- readRDS("D:/Research/Web of Human Rights/GenComs/wd/dataset_gc.rds")
+# dataset_gc <- readRDS("Yyour_directory/GenComs/wd/dataset_gc.rds")
 
 # If you want a CSV to eyeball, use readr — never write.csv2() for text.
 # But treat that CSV as a *view*, not as the working data set:
