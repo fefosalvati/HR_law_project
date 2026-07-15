@@ -1,0 +1,97 @@
+# ============================================================================
+# FIX: rebuild the data set without the CSV detour.
+#
+# PROBLEM: the texts contain newlines and quotation marks. CSV must escape
+# these; write.csv2()/read.csv() do it unreliably, so the reader thinks a
+# field ended and starts a new row mid-text. Not Excel's 32k limit — that
+# would truncate, not spill.
+#
+# FIX: Excel -> R -> .rds. Binary format, no escaping, no parsing.
+# ============================================================================
+
+library(readxl)
+library(dplyr)
+library(purrr)
+
+setwd("Your_directory/GenComs/text")
+
+# All MAXQDA exports, still as .xlsx. We never convert them to .csv.
+files <- list.files("all_xlsx", pattern = "\\.xlsx$", full.names = TRUE)
+
+# For each file: read it, collapse its rows into ONE text string, return one
+# row of a data frame. map_dfr() stacks those one-row frames into the final
+# data set. Because this all happens in memory, the newlines and quotes in
+# `text` are never written out and re-parsed — so nothing can break apart.
+dataset_text <- map_dfr(files, function(f) {
+  df <- read_excel(f, col_names = FALSE)
+  tibble(
+    id   = tools::file_path_sans_ext(basename(f)),  # filename = document id
+    text = paste(df[[2]], collapse = "\n\n")        # column 2 = the text column
+  )
+})
+
+# CHECK 1: one row per document. If this does not equal length(files),
+# the problem is upstream in read_excel, not in the file format.
+nrow(dataset_text)
+length(files)
+
+# CHECK 2: does column 2 really hold the text in every file? MAXQDA exports
+# are not always identical in shape, and df[[2]] is hardcoded. If ncol varies
+# across files, some documents are collapsing the wrong field.
+table(map_int(map(files, ~ read_excel(.x, col_names = FALSE)), ncol))
+
+# Merge with the network data. read_csv() (readr) rather than read.csv():
+# it is RFC4180-compliant and handles quoting properly. data_gc.csv holds
+# only ids and numbers, so it is safe either way — but be consistent.
+data_gc <- readr::read_csv("D:/Research/Web of Human Rights/GenComs/wd/data_gc.csv")
+
+# Diagnose id mismatches BEFORE the join, otherwise inner_join silently
+# drops documents and you will not notice.
+setdiff(dataset_text$id, data_gc$id)   # texts with no network entry
+setdiff(data_gc$id, dataset_text$id)   # network entries with no text
+
+dataset_gc <- inner_join(dataset_text, data_gc, by = "id")
+
+# CHECK 3: no rows lost or duplicated in the join.
+nrow(dataset_gc)
+
+# SAVE AS .rds this is the actual fix. No text is ever serialised to a
+# character-delimited format, so no field can split across rows.
+saveRDS(dataset_gc, "D:/Research/Web of Human Rights/GenComs/wd/dataset_gc.rds")
+
+# Reload in any later session with:
+# dataset_gc <- readRDS("D:/Research/Web of Human Rights/GenComs/wd/dataset_gc.rds")
+
+# If you want a CSV to eyeball, use readr — never write.csv2() for text.
+# But treat that CSV as a *view*, not as the working data set:
+# readr::write_csv(dataset_gc, "dataset_gc_inspection.csv")
+
+# Spot-check a document reads correctly end to end:
+# writeLines(dataset_gc$text[87])
+
+
+
+
+###############################################################################
+#####################Collapsing text 
+###############################################################################
+
+
+
+
+library(dplyr)
+
+# Collapse into a single string, paragraphs separated by double newline
+doc_text <- paste(UN2017GenComCAT4[[2]], collapse = "\n\n")
+
+# If you want it as a one-row tibble preserving the structure:
+UN2017GenComCAT4_collapsed <- tibble(
+  doc_id = 1,
+  committee = "Committee against Torture",
+  text = paste(UN2017GenComCAT4[[2]], collapse = "\n\n")
+)
+
+#if you need to batch this across documents than I would do soemthing like this 
+collapse_doc <- function(df, text_col = 2) {
+  paste(df[[text_col]], collapse = "\n\n")
+}
